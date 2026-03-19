@@ -21,7 +21,7 @@ class Layout(Enum):
 
 @dataclass
 class PreprocessConfig:
-    pdf_path:str = "/home/cxv166/OCR/Print 2/PORCONES.748.6 – 1650.pdf"
+    pdf_path:str = "/mnt/vstor/courses/csds312/cxv166/OCR/Print 2/Covarrubias - Tesoro lengua.pdf"
     output_root:str = "./output"
     dpi:int = 300
     layout: Layout = Layout.AUTO

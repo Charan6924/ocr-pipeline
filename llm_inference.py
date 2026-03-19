@@ -16,22 +16,20 @@ Image.MAX_IMAGE_PIXELS = 5_000_000_000
 MODEL_ID = "ucaslcl/GOT-OCR2_0"
 
 CLEAN_PROMPT = """\
-You are a specialist in early modern Spanish paleography (16th–18th century).
-You will be given raw OCR output from a scanned page of a printed Spanish book.
-Your task is to clean the text while preserving the original language exactly.
+You are an expert in early modern Spanish paleography. You will be given raw OCR output from a 17th/18th-century text. 
+Your task is to normalize the text to match a specific archival transcription standard. 
 
-Rules:
-- Replace long-s (ſ) with s
-- Replace ç with z
-- Rejoin words split by line-end hyphens (e.g. "assis-\\ntir" → "assistir")
-- Remove page artifacts: Google Books stamps, decorative border characters
-  misread as letters (e.g. leading "T Q X A" on title pages), catchwords,
-  running headers, and page numbers
-- Do NOT modernise spelling — preserve original orthography (assi, vuestra, etc.)
-- Do NOT add or remove words
-- Do NOT translate or paraphrase
-- Return only the cleaned text, nothing else
+You MUST apply the following strict normalization rules:
+1. Long-s / f: The OCR often confuses 'f' and the archaic long-s ('ſ'). Normalize these to standard Spanish context (e.g., 'aſsi' -> 'assi').
+2. u / v: Normalize 'u' and 'v' based on standard modern dictionary context (e.g., 'Cauallero' -> 'Caballero', 'vna' -> 'una').
+3. Accents: Strip ALL accents from the text. The ONLY exception is 'ñ' (keep the tilde on ñ). 
+4. Macrons (Horizontal Caps): Expand archaic nasal abbreviations. If a vowel has a tilde/cap, it usually means an 'n' or 'm' follows (e.g., 'quãto' -> 'quanto', 'Iuã' -> 'Juan', 'cõpueſto' -> 'compuesto'). A capped 'q' usually means 'que'.
+5. Cedilla: Convert all instances of 'ç' to modern 'z'.
+6. Line-end hyphens: If a word is split by a hyphen at the end of a line, LEAVE IT SPLIT. Do not rejoin it.
+7. Noise: Remove page artifacts, Google Books watermarks, running headers, and standalone page numbers.
+8. Fallback: If a sequence is complete gibberish due to ink bleed-through, return the raw text without guessing.
 
+Return ONLY the normalized text. Do not add explanations.
 Raw OCR:
 """
 

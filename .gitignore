@@ -12,6 +12,6 @@ wheels/
 Print/
 Print 2/
 output/
-
+ground_truth/
 .env
 logs/

@@ -22,6 +22,6 @@ SOURCE_DIR=$(sed -n "${SLURM_ARRAY_TASK_ID}p" sources.txt)
 echo "Processing: $SOURCE_DIR"
 
 unset VIRTUAL_ENV
-SOURCE_DIR="$SOURCE_DIR" uv run inference.py
+SOURCE_DIR="$SOURCE_DIR" uv run llm_inference.py
 
 echo "End: $(date)"
