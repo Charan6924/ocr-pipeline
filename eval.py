@@ -1,28 +1,3 @@
-"""
-evaluate.py
-===========
-Computes Character Error Rate (CER) between ground truth transcriptions
-and OCR output (raw and cleaned).
-
-CER = (insertions + deletions + substitutions) / total ground truth characters
-    = Levenshtein edit distance / len(ground_truth)
-
-Ground truth format (docx exported to plain text)
--------------------------------------------------
-The docx uses page markers like "PDF p2", "PDF p3" to delimit pages.
-Each marker is followed by the transcribed text for that page.
-
-Page ID mapping
----------------
-"PDF p2" maps to the preprocessed page IDs for that PDF page number.
-For SPREAD sources: PDF page 2 → p002L and p002R
-For SINGLE sources: PDF page 2 → p002
-
-Usage
------
-python evaluate.py
-"""
-
 import re
 import logging
 from dataclasses import dataclass, field
@@ -31,24 +6,15 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
 log = logging.getLogger(__name__)
 
-
 @dataclass
 class EvalConfig:
-    # Path to the ground truth plain text file (convert docx with pandoc first)
-    # pandoc Buendia_-_Instruccion_transcription.docx -t plain -o ground_truth.txt
     ground_truth_txt: str = "/mnt/vstor/courses/csds312/cxv166/OCR/ground_truth/ground_truth_porcones_1650.txt"
-    # Preprocessed output directory for the source being evaluated
-    source_dir:       str = "/mnt/vstor/courses/csds312/cxv166/OCR/output/PORCONES.748.6 – 1650"
-
-    # Layout of the source — affects how PDF page numbers map to page IDs
-    # "spread" → PDF p2 = p002L + p002R
-    # "single" → PDF p2 = p002
-    layout:           str = "single"
-    eval_raw:         bool = True   # <page_id>.txt
-    eval_cleaned:     bool = True   # <page_id>_cleaned.txt
+    source_dir: str = "/mnt/vstor/courses/csds312/cxv166/OCR/output/PORCONES.748.6 – 1650"
+    layout: str = "single"
+    eval_raw: bool = True   
+    eval_cleaned: bool = True  
 
 def levenshtein(a: str, b: str) -> int:
-    """Compute character-level Levenshtein edit distance."""
     if not a:
         return len(b)
     if not b:
@@ -60,7 +26,7 @@ def levenshtein(a: str, b: str) -> int:
         for j, cb in enumerate(b):
             curr[j + 1] = min(
                 prev[j + 1] + 1,       # deletion
-                curr[j]     + 1,       # insertion
+                curr[j] + 1,       # insertion
                 prev[j] + (ca != cb),  # substitution
             )
         prev = curr
@@ -68,28 +34,12 @@ def levenshtein(a: str, b: str) -> int:
 
 
 def normalise(text: str) -> str:
-    """
-    Minimal normalisation applied to both GT and OCR before CER computation.
-
-    - Rejoin line-end hyphens (assis-\ntir → assistir)
-    - Collapse whitespace
-    - Lowercase
-
-    Spelling is NOT changed — assi, disseño, vuestra etc. are preserved
-    so the CER reflects real OCR errors, not orthographic differences.
-    """
-    # Rejoin hyphenated line breaks
-    text = re.sub(r"-\n(\S)", r"\1", text)
-    # Collapse all whitespace to single space
+    text = re.sub(r"-\n(\S)", r"\1", text) #replace newline with a single splace
     text = " ".join(text.split())
     return text.lower()
 
 
 def cer(hypothesis: str, reference: str) -> float:
-    """
-    Character Error Rate = edit_distance(hyp, ref) / len(ref).
-    Both strings are normalised before comparison.
-    """
     ref = normalise(reference)
     hyp = normalise(hypothesis)
     if not ref:
@@ -98,18 +48,11 @@ def cer(hypothesis: str, reference: str) -> float:
 
 
 def parse_ground_truth(gt_path: Path) -> dict[int, str]:
-    """
-    Parse a plain-text ground truth file with "PDF pN" page markers.
-
-    Returns {pdf_page_number: text} dict.
-    The header notes block before the first "PDF p" marker is discarded.
-    """
     text   = gt_path.read_text(encoding="utf-8")
     chunks = re.split(r"(?m)^PDF\s+p(\d+)\s*$", text)
 
     pages = {}
-    # re.split with a capturing group gives [pre, num, text, num, text, ...]
-    it = iter(chunks[1:])   # skip the pre-marker header
+    it = iter(chunks[1:])  
     for num_str, content in zip(it, it):
         pages[int(num_str)] = content.strip()
 
@@ -117,18 +60,11 @@ def parse_ground_truth(gt_path: Path) -> dict[int, str]:
     return pages
 
 def page_ids_for(pdf_num: int, layout: str) -> list[str]:
-    """
-    Return the page_id(s) that correspond to a PDF page number.
-
-    spread → ["p002L", "p002R"]
-    single → ["p002"]
-    """
     if layout == "spread":
         return [f"p{pdf_num:03d}L", f"p{pdf_num:03d}R"]
     return [f"p{pdf_num:03d}"]
 
 def read_ocr(source_dir: Path, page_id: str, cleaned: bool) -> str | None:
-    """Read raw or cleaned OCR text for a page. Returns None if missing."""
     suffix   = "_cleaned.txt" if cleaned else ".txt"
     txt_path = source_dir / page_id / f"{page_id}{suffix}"
     if not txt_path.exists():
@@ -138,7 +74,7 @@ def read_ocr(source_dir: Path, page_id: str, cleaned: bool) -> str | None:
 
 def evaluate(config: EvalConfig):
     source_dir = Path(config.source_dir)
-    gt_path    = Path(config.ground_truth_txt)
+    gt_path = Path(config.ground_truth_txt)
 
     if not gt_path.exists():
         log.error(f"Ground truth file not found: {gt_path}")
@@ -151,9 +87,7 @@ def evaluate(config: EvalConfig):
 
     for pdf_num, gt_text in sorted(gt_pages.items()):
         page_ids = page_ids_for(pdf_num, config.layout)
-
-        # For spread sources the GT covers both pages — concatenate OCR output
-        raw_parts     = []
+        raw_parts = []
         cleaned_parts = []
 
         for page_id in page_ids:
@@ -171,22 +105,21 @@ def evaluate(config: EvalConfig):
                 else:
                     log.warning(f"  Cleaned OCR missing for {page_id}")
 
-        raw_text     = " ".join(raw_parts)
+        raw_text = " ".join(raw_parts)
         cleaned_text = " ".join(cleaned_parts)
 
-        raw_cer     = cer(raw_text,     gt_text) if raw_parts     else None
+        raw_cer = cer(raw_text,     gt_text) if raw_parts     else None
         cleaned_cer = cer(cleaned_text, gt_text) if cleaned_parts else None
 
         label = "+".join(page_ids)
         results.append((label, gt_text, raw_cer, cleaned_cer))
 
         log.info(
-            f"  PDF p{pdf_num} [{label}]"
-            + (f"  raw CER={raw_cer:.3f}"     if raw_cer     is not None else "")
-            + (f"  cleaned CER={cleaned_cer:.3f}" if cleaned_cer is not None else "")
+            f"PDF p{pdf_num} [{label}]" + (f"  raw CER={raw_cer:.3f}" if raw_cer is not None else "")
+            + (f"cleaned CER={cleaned_cer:.3f}" if cleaned_cer is not None else "")
         )
 
-    raw_scores     = [r for _, _, r, _ in results if r is not None]
+    raw_scores = [r for _, _, r, _ in results if r is not None]
     cleaned_scores = [c for _, _, _, c in results if c is not None]
 
     print("\n" + "=" * 60)
