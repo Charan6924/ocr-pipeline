@@ -34,7 +34,7 @@ def levenshtein(a: str, b: str) -> int:
 
 
 def normalise(text: str) -> str:
-    text = re.sub(r"-\n(\S)", r"\1", text) #replace newline with a single splace
+    text = re.sub(r"-\n(\S)", r"\1", text)  # rejoin hyphenated words split across lines
     text = " ".join(text.split())
     return text.lower()
 

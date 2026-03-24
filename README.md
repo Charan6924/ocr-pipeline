@@ -23,3 +23,55 @@ The raw text output from the OCR model is then passed to a large language model 
 
 ### 4. Evaluation (`eval.py`)
 The final, cleaned text is evaluated against a ground-truth transcription. The primary metric used is Character Error Rate (CER), which is well-suited for historical texts with non-standard spellings. The evaluation script calculates CER for both the raw and the LLM-cleaned OCR output, allowing for a clear measure of the LLM correction step's effectiveness.
+
+## Setup
+
+Requires Python 3.12+ and [uv](https://github.com/astral-sh/uv) for dependency management.
+
+```bash
+# Install dependencies
+uv sync
+```
+
+## Usage
+
+### Stage 1: Preprocessing
+```bash
+# Edit preprocess.py to set pdf_path, then run:
+uv run python preprocess.py
+```
+Outputs preprocessed page images to `./output/<source_name>/`.
+
+### Stage 2: OCR Inference
+```bash
+export SOURCE_DIR="./output/YourDocument"
+uv run python inference.py
+```
+Outputs raw `.txt` files alongside each page image.
+
+### Stage 3: LLM Correction
+```bash
+export OPENAI_API_KEY="your-key"
+export SOURCE_DIR="./output/YourDocument"
+uv run python llm_inference.py
+```
+Outputs `_cleaned.txt` files with normalized text.
+
+### Stage 4: Evaluation
+```bash
+# Edit eval.py to set ground_truth_txt and source_dir paths, then run:
+uv run python eval.py
+```
+Prints a table of CER scores per page and mean CER.
+
+## Project Structure
+
+```
+├── preprocess.py      # PDF → page images with marginalia removal
+├── inference.py       # GOT-OCR2.0 transcription
+├── llm_inference.py   # GPT-4o-mini post-correction
+├── eval.py            # CER evaluation against ground truth
+├── sources.txt        # List of source directories for batch jobs
+├── *.sh               # SLURM batch scripts for HPC
+└── output/            # Generated outputs (git-ignored)
+```

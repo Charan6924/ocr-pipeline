@@ -86,7 +86,7 @@ def iter_pages(source_dir: Path):
         yield page_dir.name, png_path
 
 
-def run_inference(source_dir: Path, model, tokenizer, openai_client: OpenAI) -> int:
+def run_inference(source_dir: Path, model, tokenizer, openai_client: OpenAI, config: "InferConfig") -> int:
     pages = list(iter_pages(source_dir))
     log.info(f"Found {len(pages)} pages to transcribe in {source_dir.name}")
 
@@ -107,7 +107,7 @@ def run_inference(source_dir: Path, model, tokenizer, openai_client: OpenAI) -> 
         log.info(f"[{page_id}] raw → {raw_path.name} ({len(result)} chars)")
 
         try:
-            cleaned = clean_with_llm(openai_client, result)
+            cleaned = clean_with_llm(openai_client, result, model=config.openai_model)
             clean_path = png_path.parent / f"{page_id}_cleaned.txt"
             clean_path.write_text(cleaned, encoding="utf-8")
             log.info(f"  [{page_id}] cleaned → {clean_path.name} ({len(cleaned)} chars)")
@@ -134,7 +134,7 @@ def main():
 
     openai_client = load_openai_client()
     model, tokenizer = load_model(config.device)
-    n = run_inference(source_dir, model, tokenizer, openai_client)
+    n = run_inference(source_dir, model, tokenizer, openai_client, config)
     log.info(f"Done! {n} pages transcribed from {source_dir.name}")
 
 
